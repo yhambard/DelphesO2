@@ -6,6 +6,7 @@
 #include "TDatabasePDG.h"
 #include "TRandom.h"
 #include "TLorentzVector.h"
+#include <iostream>
 
 namespace o2
 {
@@ -50,34 +51,56 @@ bool ECALdetector::makeSignal(const GenParticle& particle,
   // take generated particle as input and calculate its smeared 4-momentum p4ECAL
   // and hit coordinates posZ, posPhi
 
-  const int pid = particle.PID;
-  if (pid != 22) { // only photons are treated so far. e+- and MIPs will be added later.
-    return false;
-  }
-
   TLorentzVector p4True = particle.P4(); // true 4-momentum
-  if (TMath::Abs(p4True.Eta()) > 4) {    // ECAL acceptance is rougly limited by |eta|<4
+  if (TMath::Abs(p4True.Eta()) > 1.59) {    // ECAL acceptance is rougly limited by |eta|<4
     return false;
   }
-
-  Float_t vtX = particle.X; // particle vertex X
-  Float_t vtY = particle.Y; // particle vertex Y
-  Float_t vtZ = particle.Z; // particle vertex Z
-
-  posPhi = p4True.Phi(); // azimuth angle of a photon hit
+  posPhi = p4True.Phi(); // azimuth angle of a hit
   posZ = -1e6;
   Double_t tanTheta = TMath::Tan(p4True.Theta());
   if (tanTheta != 0.) {
-    posZ = mRadius / tanTheta; // z-coodrinate  of a photon hit
+    posZ = mRadius / tanTheta; // z-coodrinate of a hit
   }
+  if(abs(posZ) <= 64) setup( mEnergyHighResolutionA, mEnergyHighResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+  else setup( mEnergyResolutionA, mEnergyResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
 
-  p4ECAL = smearPhotonP4(p4True);
+  p4ECAL = smearPhotonP4(p4True, posZ, posPhi);
+  return true;
+}
 
+bool ECALdetector::makeChargedSignal(const Track& track,
+                                    TLorentzVector& p4ECAL,
+                                    float& posZ,
+                                    float& posPhi)
+{
+  const int pid = track.PID;
+  if (abs(pid) != 11 && abs(pid) != 13 && abs(pid) != 211 && abs(pid) != 321 && abs(pid) != 2212 ) { // e+-. MIPs will be added later.   /// added mips pions +-211 kaons 321 protons 2212 
+    return false;
+  }
+  if (TMath::Abs(track.EtaOuter) > 1.59) {    // ECAL acceptance is rougly limited by |eta|<4
+    return false;
+  }
+  
+  if(abs(track.ZOuter * 0.1) <= 64) setup( mEnergyHighResolutionA, mEnergyHighResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+  else setup( mEnergyResolutionA, mEnergyResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+  
+  //TLorentzVector p4Tracker = track.P4();
+  TLorentzVector p4Tracker;
+  p4Tracker.SetPtEtaPhiM(track.PT, track.EtaOuter, track.PhiOuter, 0.0);   // OUTERS USED
+  
+  posZ = track.ZOuter * 0.1;
+  posPhi = track.PhiOuter;
+  if(abs(pid) == 11) 
+    p4ECAL = smearPhotonP4(p4Tracker, posZ, posPhi);
+  else 
+    p4ECAL = smearMIPP4(p4Tracker, posZ, posPhi);
   return true;
 }
 
 /*****************************************************************/
-TLorentzVector ECALdetector::smearPhotonP4(const TLorentzVector& pTrue)
+TLorentzVector ECALdetector::smearPhotonP4(const TLorentzVector& pTrue, 
+                                          float& Z,
+                                          float& phi)
 {
   // This function smears the photon 4-momentum from the true one via applying
   // parametrized energy and coordinate resolution
@@ -86,12 +109,19 @@ TLorentzVector ECALdetector::smearPhotonP4(const TLorentzVector& pTrue)
   Double_t eTrue = pTrue.E();
   Double_t eSmeared = smearPhotonE(eTrue);
   // Smear direction of 3-vector
-  Double_t phi = pTrue.Phi() + gRandom->Gaus(0., sigmaX(eTrue) / mRadius);
-  Double_t theta = pTrue.Theta() + gRandom->Gaus(0., sigmaX(eTrue) / mRadius);
+  phi += gRandom->Gaus(0., sigmaX(eTrue) / mRadius);
+  Z += gRandom->Gaus(0., sigmaX(eTrue));
+  Double_t theta = TMath::Pi()/2;
+  if (Z!=0.)
+  {
+    theta = TMath::ATan(mRadius/Z); 
+    if(theta<0) theta+= TMath::Pi();
+  }
   // Calculate smeared components of 3-vector
   Double_t pxSmeared = eSmeared * TMath::Cos(phi) * TMath::Sin(theta);
   Double_t pySmeared = eSmeared * TMath::Sin(phi) * TMath::Sin(theta);
   Double_t pzSmeared = eSmeared * TMath::Cos(theta);
+  std::cout<<"Pz = "<<pzSmeared<<"\t theta = "<<theta<<std::endl;
   // Construct new 4-momentum from smeared energy and 3-momentum
   TLorentzVector pSmeared(pxSmeared, pySmeared, pzSmeared, eSmeared);
   return pSmeared;
@@ -120,5 +150,42 @@ Double_t ECALdetector::smearPhotonE(const Double_t& eTrue)
 }
 /*****************************************************************/
 
+TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,  
+                                        float& Z,
+                                        float& phi)
+{ 
+  Double_t E_mpv=.28; //[GeV]
+  Double_t landausigma=0.05;
+  Double_t eSmeared = gRandom->Landau(E_mpv,landausigma);  
+  while (eSmeared > pTrue.P())
+  {
+    eSmeared = gRandom->Landau(E_mpv,landausigma);
+  }
+
+  phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
+  Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));
+  Double_t theta = TMath::Pi()/2;                               ///better spacial resolution if mip?
+  if (Z!=0.)
+  {
+    theta = TMath::ATan(mRadius/Z); 
+    if(theta<0) theta+= TMath::Pi();
+  }
+  
+  //considering mass is 0;;
+  Double_t pxSmeared = eSmeared * TMath::Cos(phi) * TMath::Sin(theta);
+  Double_t pySmeared = eSmeared * TMath::Sin(phi) * TMath::Sin(theta);
+  Double_t pzSmeared = eSmeared * TMath::Cos(theta);
+  TLorentzVector pSmeared(pxSmeared, pySmeared, pzSmeared, eSmeared);  //reconstructed MIP p
+  return pSmeared;
+}
+
+/*****************************************************************/
+
+/*
+
+*/
+
+
 } // namespace delphes
 } // namespace o2
+

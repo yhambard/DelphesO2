@@ -6,7 +6,6 @@
 #include "TDatabasePDG.h"
 #include "TRandom.h"
 #include "TLorentzVector.h"
-#include <iostream>
 
 namespace o2
 {
@@ -62,7 +61,9 @@ bool ECALdetector::makeSignal(const GenParticle& particle,
     posZ = mRadius / tanTheta; // z-coodrinate of a hit
   }
   if(abs(posZ) <= 64) setup( mEnergyHighResolutionA, mEnergyHighResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
-  else setup( mEnergyResolutionA, mEnergyResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+  else setup( mEnergyLowResolutionA, mEnergyLowResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+
+  //Printf("posZ = %f, b = %f", posZ, mEnergyResolutionB);
 
   p4ECAL = smearPhotonP4(p4True, posZ, posPhi);
   return true;
@@ -115,13 +116,12 @@ TLorentzVector ECALdetector::smearPhotonP4(const TLorentzVector& pTrue,
   if (Z!=0.)
   {
     theta = TMath::ATan(mRadius/Z); 
-    if(theta<0) theta+= TMath::Pi();
+    if(theta<0) theta+= TMath::Pi(); /// DO NOT FORGET TO UNCOMMENT
   }
   // Calculate smeared components of 3-vector
   Double_t pxSmeared = eSmeared * TMath::Cos(phi) * TMath::Sin(theta);
   Double_t pySmeared = eSmeared * TMath::Sin(phi) * TMath::Sin(theta);
   Double_t pzSmeared = eSmeared * TMath::Cos(theta);
-  std::cout<<"Pz = "<<pzSmeared<<"\t theta = "<<theta<<std::endl;
   // Construct new 4-momentum from smeared energy and 3-momentum
   TLorentzVector pSmeared(pxSmeared, pySmeared, pzSmeared, eSmeared);
   return pSmeared;

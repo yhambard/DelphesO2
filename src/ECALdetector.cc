@@ -83,7 +83,7 @@ bool ECALdetector::makeChargedSignal(const Track& track,
   }
   
   if(abs(track.ZOuter * 0.1) <= 64) setup( mEnergyHighResolutionA, mEnergyHighResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
-  else setup( mEnergyResolutionA, mEnergyResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
+  else setup( mEnergyLowResolutionA, mEnergyLowResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
   
   //TLorentzVector p4Tracker = track.P4();
   TLorentzVector p4Tracker;

@@ -109,7 +109,7 @@ bool ECALdetector::makeChargedSignal(const Track& track,
 
   if(abs(pid) == 11) 
     p4ECAL = smearPhotonP4(p4Tracker, posZ, posPhi);
-  else if(abs(pid) == 2212 && gRandom->Rndm() > 0.5)
+  else if(abs(pid) != 13 && gRandom->Rndm() > 0.5)
     p4ECAL = smearHadronP4(p4Tracker, posZ, posPhi);
   else 
     p4ECAL = smearMIPP4(p4Tracker, posZ, posPhi);

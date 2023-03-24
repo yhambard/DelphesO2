@@ -6,11 +6,26 @@
 #include "TDatabasePDG.h"
 #include "TRandom.h"
 #include "TLorentzVector.h"
+#include "TRandom.h"
 
 namespace o2
 {
 namespace delphes
 {
+
+/*****************************************************************/
+
+ECALdetector::ECALdetector()
+{
+  mEHadDep = new TF1("mEHadDep","x*(1-x)",0,1);
+}
+
+/*****************************************************************/
+
+ECALdetector::~ECALdetector()
+{
+  delete mEHadDep;
+}
 
 /*****************************************************************/
 
@@ -91,8 +106,11 @@ bool ECALdetector::makeChargedSignal(const Track& track,
   
   posZ = track.ZOuter * 0.1;
   posPhi = track.PhiOuter;
+
   if(abs(pid) == 11) 
     p4ECAL = smearPhotonP4(p4Tracker, posZ, posPhi);
+  else if(abs(pid) == 2212 && gRandom->Rndm() > 0.5)
+    p4ECAL = smearHadronP4(p4Tracker, posZ, posPhi);
   else 
     p4ECAL = smearMIPP4(p4Tracker, posZ, posPhi);
   return true;
@@ -150,7 +168,7 @@ Double_t ECALdetector::smearPhotonE(const Double_t& eTrue)
 }
 /*****************************************************************/
 
-TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,  
+TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,  ///!!!!!!!!!!! mass not included
                                         float& Z,
                                         float& phi)
 { 
@@ -185,6 +203,29 @@ TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,
 
 */
 
+TLorentzVector ECALdetector::smearHadronP4(const TLorentzVector& pTrue,  /// mass not included !!!!!!!!!!!
+                                        float& Z,
+                                        float& phi)
+{ 
+Double_t eTrue = pTrue.E() - pTrue.M();
+Double_t eSmeared = eTrue * mEHadDep->GetRandom();
+
+  phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
+  Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));
+  Double_t theta = TMath::Pi()/2;                               
+  if (Z!=0.)
+  {
+    theta = TMath::ATan(mRadius/Z); 
+    if(theta<0) theta+= TMath::Pi();
+  }
+  
+  //considering mass is 0;;
+  Double_t pxSmeared = eSmeared * TMath::Cos(phi) * TMath::Sin(theta);
+  Double_t pySmeared = eSmeared * TMath::Sin(phi) * TMath::Sin(theta);
+  Double_t pzSmeared = eSmeared * TMath::Cos(theta);
+  TLorentzVector pSmeared(pxSmeared, pySmeared, pzSmeared, eSmeared);  //reconstructed hadron p
+  return pSmeared;
+}
 
 } // namespace delphes
 } // namespace o2

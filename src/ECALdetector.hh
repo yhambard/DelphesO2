@@ -5,6 +5,7 @@
 #define _DelphesO2_ECALdetector_h_
 
 #include "classes/DelphesClasses.h"
+#include "TF1.h"
 
 namespace o2
 {
@@ -15,8 +16,8 @@ class ECALdetector
 {
 
  public:
-  ECALdetector() = default;
-  ~ECALdetector() = default;
+  ECALdetector();//default;
+  virtual ~ECALdetector();// = default;
 
   enum { kBarrelHighResolution, kBarrelCoarse, kEndcap}; // Sectors of ECAL detector
 
@@ -31,6 +32,9 @@ class ECALdetector
   TLorentzVector smearPhotonP4(const TLorentzVector& pTrue, float& Z, float& phi);
 
   TLorentzVector smearMIPP4(const TLorentzVector& pTrue, float& Z, float& phi); //// MIPS
+  TLorentzVector smearHadronP4(const TLorentzVector& pTrue, float& Z, float& phi); //// Hadron
+
+  TF1 *mEHadDep;
 
   int kType = kBarrelCoarse;
 

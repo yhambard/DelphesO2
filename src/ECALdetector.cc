@@ -106,10 +106,10 @@ bool ECALdetector::makeChargedSignal(const Track& track,
   
   posZ = track.ZOuter * 0.1;
   posPhi = track.PhiOuter;
-
+  
   if(abs(pid) == 11) 
     p4ECAL = smearPhotonP4(p4Tracker, posZ, posPhi);
-  else if(abs(pid) != 13 && gRandom->Rndm() > 0.5)
+  else if(abs(pid) != 13 && (bool)(rand()%2))  //// old random always has the same seed :: gRandom->Rndm() > 0.5
     p4ECAL = smearHadronP4(p4Tracker, posZ, posPhi);
   else 
     p4ECAL = smearMIPP4(p4Tracker, posZ, posPhi);
@@ -179,6 +179,7 @@ TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,  ///!!!!!!!
   {
     eSmeared = gRandom->Landau(E_mpv,landausigma);
   }
+  eSmeared = smearPhotonE(eSmeared); // maybe smear first and then use the while function above
 
   phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
   Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));
@@ -209,6 +210,7 @@ TLorentzVector ECALdetector::smearHadronP4(const TLorentzVector& pTrue,  /// mas
 { 
 Double_t eTrue = pTrue.E() - pTrue.M();
 Double_t eSmeared = eTrue * mEHadDep->GetRandom();
+eSmeared = smearPhotonE(eSmeared);
 
   phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
   Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));

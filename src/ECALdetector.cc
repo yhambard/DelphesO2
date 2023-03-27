@@ -101,8 +101,27 @@ bool ECALdetector::makeChargedSignal(const Track& track,
   else setup( mEnergyLowResolutionA, mEnergyLowResolutionB, mEnergyResolutionC, mPositionResolutionA, mPositionResolutionB);
   
   //TLorentzVector p4Tracker = track.P4();
+  Double_t Mass = 0.0; //         maybe use pdg table 
+  switch (abs(pid))  //           maybe use another logic 
+  {
+  case 13:
+    Mass = 0.105;
+    break;
+  case 211:
+    Mass = 0.139;
+    break;
+  case 321:
+    Mass = 0.494;
+    break;
+  case 2212:
+    Mass = 0.938;
+    break;
+  default:
+    Mass = 0.0;
+    break;
+  }
   TLorentzVector p4Tracker;
-  p4Tracker.SetPtEtaPhiM(track.PT, track.EtaOuter, track.PhiOuter, 0.0);   // OUTERS USED
+  p4Tracker.SetPtEtaPhiM(track.PT, track.EtaOuter, track.PhiOuter, Mass);   // OUTERS USED
   
   posZ = track.ZOuter * 0.1;
   posPhi = track.PhiOuter;

@@ -102,7 +102,7 @@ bool ECALdetector::makeChargedSignal(const Track& track,
   
   //TLorentzVector p4Tracker = track.P4();
   Double_t Mass = 0.0; //         maybe use pdg table 
-  switch (abs(pid))  //           maybe use another logic 
+  switch (abs(pid))  //           maybe use another logic //
   {
   case 13:
     Mass = 0.105;

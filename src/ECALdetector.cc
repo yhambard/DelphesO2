@@ -81,6 +81,9 @@ bool ECALdetector::makeSignal(const GenParticle& particle,
   //Printf("posZ = %f, b = %f", posZ, mEnergyResolutionB);
 
   p4ECAL = smearPhotonP4(p4True, posZ, posPhi);
+ 
+  if (p4ECAL.E() < .01)
+    return false;
   return true;
 }
 
@@ -132,6 +135,9 @@ bool ECALdetector::makeChargedSignal(const Track& track,
     p4ECAL = smearHadronP4(p4Tracker, posZ, posPhi);
   else 
     p4ECAL = smearMIPP4(p4Tracker, posZ, posPhi);
+  
+  if (p4ECAL.E() < .01)
+    return false;
   return true;
 }
 
@@ -150,10 +156,10 @@ TLorentzVector ECALdetector::smearPhotonP4(const TLorentzVector& pTrue,
   phi += gRandom->Gaus(0., sigmaX(eTrue) / mRadius);
   Z += gRandom->Gaus(0., sigmaX(eTrue));
   Double_t theta = TMath::Pi()/2;
-  if (Z!=0.)
+  if (fabs(Z) > 1e-6)
   {
     theta = TMath::ATan(mRadius/Z); 
-    if(theta<0) theta+= TMath::Pi(); /// DO NOT FORGET TO UNCOMMENT
+    if(theta < 0) theta+= TMath::Pi(); /// DO NOT FORGET TO UNCOMMENT
   }
   // Calculate smeared components of 3-vector
   Double_t pxSmeared = eSmeared * TMath::Cos(phi) * TMath::Sin(theta);
@@ -203,7 +209,7 @@ TLorentzVector ECALdetector::smearMIPP4(const TLorentzVector& pTrue,  ///!!!!!!!
   phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
   Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));
   Double_t theta = TMath::Pi()/2;                               ///better spacial resolution if mip?
-  if (Z!=0.)
+  if (fabs(Z) > 1e-6)
   {
     theta = TMath::ATan(mRadius/Z); 
     if(theta<0) theta+= TMath::Pi();
@@ -234,7 +240,7 @@ eSmeared = smearPhotonE(eSmeared);
   phi = phi + gRandom->Gaus(0., sigmaX(eSmeared) / mRadius);
   Z = Z + gRandom->Gaus(0., sigmaX(eSmeared));
   Double_t theta = TMath::Pi()/2;                               
-  if (Z!=0.)
+  if (fabs(Z) > 1e-6)
   {
     theta = TMath::ATan(mRadius/Z); 
     if(theta<0) theta+= TMath::Pi();
